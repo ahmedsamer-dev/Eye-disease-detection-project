@@ -1,11 +1,11 @@
-modules = ["dotnet-7.0", "python-3.12", "dotnet-8.0", "nodejs-22"]
+modules = ["dotnet-7.0", "dotnet-8.0", "nodejs-22", "python-3.11", "postgresql-16"]
 [agent]
 expertMode = true
-stack = "BEST_EFFORT_FALLBACK"
+stack = "FLASK_VANILLA_JS"
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "postgresql", "tcl", "tk", "zlib"]
 
 [workflows]
 runButton = "Project"
@@ -79,5 +79,5 @@ exposeLocalhost = true
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd Hassan_EyeDiseaseAI-master/AiModelServer && python app.py & cd Hassan_EyeDiseaseAI-master/EyeDiseaseAI.API && dotnet run --launch-profile http & cd AI-Eye-Diagnosis-main && npm run build && npx serve -s dist -l 5000"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 build = ["bash", "-c", "cd AI-Eye-Diagnosis-main && npm install && npm run build"]

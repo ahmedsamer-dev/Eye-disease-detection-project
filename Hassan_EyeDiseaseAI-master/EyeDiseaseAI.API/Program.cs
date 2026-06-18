@@ -2,6 +2,7 @@ using System.Text;
 using EyeDiseaseAI.API.Middleware;
 using EyeDiseaseAI.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -42,9 +43,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? new[] { "http://localhost:3000" })
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:3000" };
+
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -62,7 +64,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "RESTful API for AI-powered eye disease detection and diagnosis"
     });
 
-    // JWT Auth in Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Enter 'Bearer {token}'",
@@ -105,6 +106,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Serve static frontend files from wwwroot
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseCors("AllowFrontend");
@@ -113,5 +116,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SPA fallback: serve index.html for all non-API routes
+app.MapFallbackToFile("index.html");
 
 app.Run();
