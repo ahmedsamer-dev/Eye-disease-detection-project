@@ -23,14 +23,8 @@ app = Flask(__name__)
 CORS(app)
 
 
-# =============================================
-# تحميل الموديل
-# =============================================
-# =============================================
-# تحميل الموديل
-# =============================================
-MODEL_PATH = "model.h5"  # Try relative path first
-FALLBACK_PATH = r"D:\Downloads\Model AI\model.h5"
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.h5")
+FALLBACK_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "AI_Model", "model.h5")
 
 model = None
 MOCK_MODE = False
@@ -55,13 +49,9 @@ else:
     MOCK_MODE = True
 
 
-# ترتيب الكلاسات حسب تدريب الموديل
 classes = ['Cataract', 'Diabetic Retinopathy', 'Glaucoma', 'Normal']
 
 
-# =============================================
-# معلومات كل حالة (Severity + Summary + Recommendations)
-# =============================================
 condition_details = {
     'Cataract': {
         'severity': 'Moderate - Surgical evaluation recommended',
@@ -116,8 +106,6 @@ condition_details = {
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Endpoint to receive an eye image and return AI prediction"""
-
     if model is None and not MOCK_MODE:
         return jsonify({"error": "Model not loaded"}), 500
 
@@ -128,14 +116,12 @@ def predict():
 
     try:
         if MOCK_MODE:
-            # Generate random but realistic predictions for testing
             if np:
                 random_probs = np.random.dirichlet(np.ones(len(classes)), size=1)[0]
                 prediction = [random_probs]
                 result_index = int(np.argmax(random_probs))
                 confidence = float(np.max(random_probs)) * 100
             else:
-                # Pure Python fallback
                 probs = [random.uniform(0, 1) for _ in range(len(classes))]
                 total = sum(probs)
                 probs = [p/total for p in probs]
@@ -145,14 +131,12 @@ def predict():
         else:
             if not model or not np or not Image:
                 return jsonify({"error": "Dependencies or model missing for real prediction"}), 500
-                
-            # Pre-processing
+
             img = Image.open(io.BytesIO(file.read())).convert('RGB')
             img = img.resize((224, 224))
-            img_array = np.array(img, dtype=np.float32)  # Raw 0-255 (model has built-in Rescaling layer)
+            img_array = np.array(img, dtype=np.float32)
             img_array = np.expand_dims(img_array, axis=0)
 
-            # Predict
             prediction = model.predict(img_array)
             result_index = int(np.argmax(prediction))
             confidence = float(np.max(prediction)) * 100
@@ -160,7 +144,6 @@ def predict():
         detected_condition = classes[result_index]
         details = condition_details[detected_condition]
 
-        # Return response matching .NET API expected format
         return jsonify({
             "condition": detected_condition,
             "confidence": round(confidence, 1),
@@ -175,18 +158,16 @@ def predict():
             }
         })
 
-
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/health', methods=['GET'])
 def health():
-    """Health check endpoint"""
     return jsonify({
         "status": "running",
         "model_loaded": model is not None,
+        "mock_mode": MOCK_MODE,
         "classes": classes
     })
 
@@ -195,9 +176,9 @@ if __name__ == '__main__':
     print("=" * 50)
     print("  AI Eye Disease Detection Model Server")
     print("=" * 50)
-    print(f"  Running on: http://localhost:5000")
+    print(f"  Running on: http://localhost:5001")
     print(f"  Endpoints:")
     print(f"   POST /predict  - Send image for analysis")
     print(f"   GET  /health   - Check server status")
     print("=" * 50)
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='localhost', port=8080)
