@@ -1,6 +1,7 @@
 using System.Text;
 using EyeDiseaseAI.API.Middleware;
 using EyeDiseaseAI.Infrastructure;
+using EyeDiseaseAI.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,10 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ===== Add Services =====
 
-// Infrastructure (DbContext, Identity, Repositories, Services, AutoMapper)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Controllers
 builder.Services.AddControllers();
 
 // JWT Authentication
@@ -38,15 +37,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
+// CORS — allow any origin (SetIsOriginAllowed supports AllowCredentials)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? new[] { "http://localhost:3000" };
-
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -91,33 +87,43 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ===== Configure Pipeline =====
-
-// Exception Middleware (must be first)
-app.UseMiddleware<ExceptionMiddleware>();
-
-// Swagger (Development only)
-if (app.Environment.IsDevelopment())
+// ===== Auto-migrate database on startup =====
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AI Eye Disease API v1");
-    });
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
 }
 
-// Serve static frontend files from wwwroot
+// ===== Configure Pipeline — ORDER MATTERS =====
+
+// 1. Exception handler first
+app.UseMiddleware<ExceptionMiddleware>();
+
+// 2. Swagger — enabled always so it works in Production too
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AI Eye Disease API v1");
+});
+
+// 3. Static files
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.UseCors("AllowFrontend");
+// 4. Routing — must come before CORS
+app.UseRouting();
 
+// 5. CORS — must be after UseRouting and BEFORE UseAuthentication
+app.UseCors("AllowAll");
+
+// 6. Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
+// 7. Controllers
 app.MapControllers();
 
-// SPA fallback: serve index.html for all non-API routes
+// 8. SPA fallback
 app.MapFallbackToFile("index.html");
 
 app.Run();

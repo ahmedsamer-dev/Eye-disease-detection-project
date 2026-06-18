@@ -1,0 +1,50 @@
+بما إن المشكلة لسه ظاهرة كـ Network Error بعد ما عدلتوا كود الـ CORS، فده معناه إن فيه خطوة تانية دقيقة جداً في الـ ASP.NET لسه معطلة الـ Request.
+
+الـ Browser قبل ما يبعت طلب الـ Login الحقيقي، بيبعت طلب وهمي اسمه Preflight Request بنوع OPTIONS ليتأكد من الأمان. الـ ASP.NET بشكل افتراضي بيرفض الـ OPTIONS دي لو مش متعرفة صح جوه إعدادات السيرفر أو الـ Controllers، فيقوم المتصفح مطلع لك فوراً Network Error أو CORS Error في الـ Console.
+
+علشان تحلوا الموضوع ده نهائياً، زميلك بتاع الباك إند محتاج يعمل الخطوات دي بالظبط حسب الطريقة اللي ضبط بيها الـ CORS:
+
+1. لو شغالين بـ .NET Core / 6 / 8 (الحل الأكيد)
+تأكدوا إن ترتيب الأوامر في ملف Program.cs مكتوب بالترتيب ده بالظبط، لأن الترتيب بيفرق جداً في الـ .NET:
+
+C#
+var app = builder.Build();
+
+// الترتيب الصحيح والـ Middleware
+app.UseRouting();
+
+// 1. لازم الـ CORS يتحط هنا بالظبط بعد الـ Routing وقبل الـ Auth
+app.UseCors("AllowAll"); 
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+app.Run();
+(لو سطر app.UseCors مكتوب تحت الـ Authentication أو الـ Authorization مش هيشتغل وهيجيب نفس الـ Error).
+
+2. لو شغالين بـ .NET Framework القديم (الـ Web.config)
+الـ IIS سيرفر ساعات بيمسح الـ Headers اللي ضفناها في الـ Web.config لطلبات الـ OPTIONS. عشان تجبروه يوافق عليها، ضيفوا الكود ده جوه نفس وسم <system.webServer> لكي يمسح الـ Handlers القديمة ويقبلها:
+
+XML
+<system.webServer>
+  <handlers>
+    <remove name="ExtensionlessUrlHandler-Integrated-4.0" />
+    <remove name="OPTIONSVerbHandler" />
+    <add name="ExtensionlessUrlHandler-Integrated-4.0" path="*." verb="*" type="System.Web.Handlers.TransferRequestHandler" preCondition="integratedMode,runtimeVersionv4.0" />
+  </handlers>
+  <httpProtocol>
+    <customHeaders>
+      <add name="Access-Control-Allow-Origin" value="*" />
+      <add name="Access-Control-Allow-Headers" value="Content-Type, Authorization" />
+      <add name="Access-Control-Allow-Methods" value="GET, POST, PUT, DELETE, OPTIONS" />
+    </customHeaders>
+  </httpProtocol>
+</system.webServer>
+💡 حيلة سريعة لتتأكدوا إن الـ API نفسه شغال سليم:
+خلوا زميلك يجرب يفتح Postman ويبعت طلب Login لـ:
+http://site74972.siteasp.net/api/auth/login
+
+لو الـ Postman رجع نتيجة (حتى لو غلط زي Wrong Username)، يبقى الـ API شغال والمشكلة 100% في ترتيب الـ CORS في الـ C# كما شرحت فوق.
+
+لو الـ Postman نفسه جاب Error أو معلق، يبقى الكود نفسه فيه مشكلة جوه الـ Login Controller (مثلاً بيحاول يكلم داتابيز مش واصلة أو الـ App Pool مهنج ومحتاج Restart من لوحة MonsterASP).
