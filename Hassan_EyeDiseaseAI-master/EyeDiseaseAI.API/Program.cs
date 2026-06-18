@@ -9,10 +9,7 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Add Services =====
-
 builder.Services.AddInfrastructure(builder.Configuration);
-
 builder.Services.AddControllers();
 
 // JWT Authentication
@@ -37,15 +34,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS — allow any origin including deployed frontends
+// CORS — AllowAnyOrigin (no AllowCredentials needed — JWT uses Authorization header not cookies)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
 });
 
@@ -59,7 +55,6 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "RESTful API for AI-powered eye disease detection and diagnosis"
     });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Enter 'Bearer {token}'",
@@ -68,17 +63,12 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
@@ -87,34 +77,34 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ===== Auto-migrate database on startup =====
+// Auto-migrate database on startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
 }
 
-// ===== Configure Pipeline — ORDER MATTERS =====
+// ===== Middleware Pipeline =====
 
-// 1. CORS MUST be FIRST so headers are present even on error responses
-app.UseCors("AllowAll");
-
-// 2. Exception handler
+// 1. Exception handler first
 app.UseMiddleware<ExceptionMiddleware>();
 
-// 3. Swagger — enabled always so it works in Production too
+// 2. Swagger
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "AI Eye Disease API v1");
 });
 
-// 4. Static files
+// 3. Static files (wwwroot — React build)
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// 5. Routing
+// 4. Routing MUST come before CORS for endpoint routing
 app.UseRouting();
+
+// 5. CORS after UseRouting — required for endpoint routing
+app.UseCors("AllowAll");
 
 // 6. Auth
 app.UseAuthentication();
