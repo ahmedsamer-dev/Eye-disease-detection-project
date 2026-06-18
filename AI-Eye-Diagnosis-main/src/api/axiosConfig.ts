@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5062/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -62,7 +62,7 @@ export const getFullImageUrl = (path?: string | null): string => {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5062/api').replace(/\/api$/, '');
+  const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${baseUrl}${cleanPath}`;
 };
