@@ -37,7 +37,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS — allow any origin (SetIsOriginAllowed supports AllowCredentials)
+// CORS — allow any origin including deployed frontends
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -96,25 +96,25 @@ using (var scope = app.Services.CreateScope())
 
 // ===== Configure Pipeline — ORDER MATTERS =====
 
-// 1. Exception handler first
+// 1. CORS MUST be FIRST so headers are present even on error responses
+app.UseCors("AllowAll");
+
+// 2. Exception handler
 app.UseMiddleware<ExceptionMiddleware>();
 
-// 2. Swagger — enabled always so it works in Production too
+// 3. Swagger — enabled always so it works in Production too
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "AI Eye Disease API v1");
 });
 
-// 3. Static files
+// 4. Static files
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// 4. Routing — must come before CORS
+// 5. Routing
 app.UseRouting();
-
-// 5. CORS — must be after UseRouting and BEFORE UseAuthentication
-app.UseCors("AllowAll");
 
 // 6. Auth
 app.UseAuthentication();
