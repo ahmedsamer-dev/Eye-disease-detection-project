@@ -3,11 +3,20 @@ using EyeDiseaseAI.API.Middleware;
 using EyeDiseaseAI.Infrastructure;
 using EyeDiseaseAI.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Trust forwarded headers from reverse proxy (enables HTTPS scheme behind proxy)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
@@ -85,6 +94,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ===== Middleware Pipeline =====
+
+// 0. Forwarded headers (must be first — enables correct HTTPS scheme behind proxy)
+app.UseForwardedHeaders();
 
 // 1. Exception handler first
 app.UseMiddleware<ExceptionMiddleware>();
