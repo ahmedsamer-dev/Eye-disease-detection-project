@@ -1,0 +1,17 @@
+# .NET Backend
+bin/
+obj/
+.vs/
+.vscode/
+appsettings.Development.json
+
+# React Frontend
+node_modules/
+dist/
+build/
+
+# Flask AI Model
+__pycache__/
+*.pyc
+venv/
+.env

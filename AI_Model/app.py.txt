@@ -1,0 +1,48 @@
+from flask import Flask, request, jsonify
+import tensorflow as tf
+import numpy as np
+from PIL import Image
+import io
+
+app = Flask(__name__)
+
+# 1. تحميل الموديل (تأكد أن ملف الموديل في نفس مسار الكود)
+try:
+    model = tf.keras.models.load_model('model.h5')
+except Exception as e:
+    print(f"Error loading model: {e}")
+
+# 2. ترتيب الكلاسات حسب تدريب الموديل
+classes = ['Cataract', 'Diabetic Retinopathy', 'Glaucoma', 'Normal']
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    # التأكد من وجود ملف في الطلب
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    
+    try:
+        # معالجة الصورة لتناسب مدخلات الموديل (Pre-processing)
+        img = Image.open(io.BytesIO(file.read())).convert('RGB')
+        img = img.resize((224, 224))  # الحجم الافتراضي لـ EfficientNet/MobileNet
+        img_array = np.array(img) / 255.0  # عمل Normalization
+        img_array = np.expand_dims(img_array, axis=0) # تحويلها لـ Batch
+        
+        # تنفيذ التوقع
+        prediction = model.predict(img_array)
+        result_index = np.argmax(prediction)
+        
+        return jsonify({
+            "status": "success",
+            "prediction": classes[result_index],
+            "confidence": float(np.max(prediction)),
+            "all_predictions": prediction.tolist()
+        })
+    
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

@@ -1,0 +1,413 @@
+"""Eye Diseases Classification - Clean Version"""
+
+# ------------------------------------------------------------
+import os
+from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+
+# ------------------------------------------------------------
+DATA_DIR = Path('dataset')  # change if needed
+IMG_SIZE = 224
+BATCH_SIZE = 32
+SEED = 42
+EPOCHS = 30
+
+# ------------------------------------------------------------
+print('Exists?', DATA_DIR.exists())
+for p in sorted(DATA_DIR.iterdir()):
+    if p.is_dir():
+        print(p.name, '->', len(list(p.glob('*'))), 'images')
+
+# ------------------------------------------------------------
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset='training',
+    seed=SEED,
+    image_size=(IMG_SIZE, IMG_SIZE),
+    batch_size=BATCH_SIZE
+)
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset='validation',
+    seed=SEED,
+    image_size=(IMG_SIZE, IMG_SIZE),
+    batch_size=BATCH_SIZE
+)
+
+class_names = train_ds.class_names
+num_classes = len(class_names)
+print('Classes:', class_names)
+
+# Prefetch for performance
+AUTOTUNE = tf.data.AUTOTUNE
+train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
+val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
+
+
+# ------------------------------------------------------------
+data_augmentation = keras.Sequential([
+    layers.RandomFlip('horizontal'),
+    layers.RandomRotation(0.05),
+    layers.RandomZoom(0.05),
+])
+
+preprocess_input = tf.keras.applications.efficientnet.preprocess_input
+
+
+# ------------------------------------------------------------
+base_model = tf.keras.applications.EfficientNetB0(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,3))
+base_model.trainable = False  # freeze for initial training
+
+inputs = keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
+x = data_augmentation(inputs)
+x = preprocess_input(x)
+x = base_model(x, training=False)
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dropout(0.3)(x)
+outputs = layers.Dense(num_classes, activation='softmax')(x)
+model = keras.Model(inputs, outputs)
+
+model.compile(
+    optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+model.summary()
+
+# ------------------------------------------------------------
+callbacks = [
+    keras.callbacks.ModelCheckpoint('eye_model_best.h5', save_best_only=True, monitor='val_accuracy', mode='max'),
+    keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True),
+    keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3)
+]
+
+
+# ------------------------------------------------------------
+# Train
+
+history = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=callbacks)
+
+# ------------------------------------------------------------
+base_model.trainable = True
+# Fine-tune from a specific layer
+fine_tune_at = len(base_model.layers) // 2
+for layer in base_model.layers[:fine_tune_at]:
+    layer.trainable = False
+
+model.compile(
+    optimizer=keras.optimizers.Adam(learning_rate=1e-5),
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+ft_epochs = 20
+callbacks_ft = [
+    keras.callbacks.ModelCheckpoint('eye_model_best_ft.h5', save_best_only=True, monitor='val_accuracy', mode='max'),
+    keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True),
+    keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3)
+]
+
+history_ft = model.fit(train_ds, validation_data=val_ds, epochs=ft_epochs, callbacks=callbacks_ft)
+
+
+# ------------------------------------------------------------
+res = model.evaluate(val_ds)
+print('Validation loss, accuracy ->', res)
+
+# Plot training curves (combine histories)
+def plot_history(h1, h2=None):
+    acc = h1.history.get('accuracy', []) + (h2.history.get('accuracy', []) if h2 else [])
+    val_acc = h1.history.get('val_accuracy', []) + (h2.history.get('val_accuracy', []) if h2 else [])
+    loss = h1.history.get('loss', []) + (h2.history.get('loss', []) if h2 else [])
+    val_loss = h1.history.get('val_loss', []) + (h2.history.get('val_loss', []) if h2 else [])
+    epochs = range(1, len(acc)+1)
+    plt.figure(figsize=(12,4))
+    plt.subplot(1,2,1)
+    plt.plot(epochs, acc, label='train_acc')
+    plt.plot(epochs, val_acc, label='val_acc')
+    plt.legend(); plt.title('Accuracy')
+    plt.subplot(1,2,2)
+    plt.plot(epochs, loss, label='train_loss')
+    plt.plot(epochs, val_loss, label='val_loss')
+    plt.legend(); plt.title('Loss')
+    plt.show()
+
+plot_history(history, history_ft)
+
+# ------------------------------------------------------------
+import numpy as np
+from tensorflow.keras.preprocessing import image
+sample_dir = list(DATA_DIR.glob('*'))[0]
+sample_images = list(sample_dir.glob('*'))[:6]
+for p in sample_images:
+    img = image.load_img(p, target_size=(IMG_SIZE, IMG_SIZE))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = preprocess_input(x)
+    preds = model.predict(x)
+    cls = class_names[np.argmax(preds[0])]
+    print(p.name, '->', cls)
+
+# Visual grid
+fig, axs = plt.subplots(2,3, figsize=(12,8))
+for ax, p in zip(axs.flatten(), sample_images):
+    img = image.load_img(p, target_size=(IMG_SIZE, IMG_SIZE))
+    ax.imshow(img); ax.axis('off')
+    x = image.img_to_array(img); x = np.expand_dims(x, axis=0); x = preprocess_input(x)
+    preds = model.predict(x); cls = class_names[np.argmax(preds[0])]
+    ax.set_title(cls)
+plt.show()
+
+# ------------------------------------------------------------
+model.save('eye_model_final.h5')
+print('Saved model to eye_model_final.h5')
+
+
+# ------------------------------------------------------------
+from google.colab import drive
+
+
+# ------------------------------------------------------------
+model.save('/content/drive/My Drive/eye_model_final.h5')
+
+
+# ------------------------------------------------------------
+model.save('/content/eye_model_final.keras')
+
+
+# ------------------------------------------------------------
+model = load_model('/content/drive/My Drive/eye_model_final.h5')
+
+
+# ------------------------------------------------------------
+from google.colab import drive
+import os
+
+# Mount Drive
+
+# Check if file exists
+model_path = 'eye_model_final.h5'
+print(f"Checking path: {model_path}")
+print(f"File exists: {os.path.exists(model_path)}")
+
+# List files in Drive
+print("\nFiles in MyDrive:")
+drive_path = '/content/drive/MyDrive'
+if os.path.exists(drive_path):
+    for f in os.listdir(drive_path):
+        if 'eye' in f.lower() or f.endswith('.h5'):
+            print(f"  ✓ {f}")
+
+# Load model
+try:
+    model = load_model(model_path)
+    print("✓ Model loaded successfully!")
+except Exception as e:
+    print(f"❌ Error: {e}")
+    print("Try one of these paths:")
+    print("  eye_model_final.h5")
+    print("  /content/drive/My Drive/eye_model_final.h5")
+    model = None
+
+
+# ------------------------------------------------------------
+pip install gradio
+
+
+# ------------------------------------------------------------
+import gradio as gr
+import numpy as np
+from tensorflow.keras.models import load_model
+from PIL import Image
+import tensorflow as tf
+from tensorflow.keras.applications.efficientnet import preprocess_input
+from google.colab import drive
+import os
+
+# ===================== MOUNT GOOGLE DRIVE =====================
+
+# ===================== LOAD MODEL =====================
+model_path = 'eye_model_final.h5'
+
+try:
+    model = load_model(model_path)
+    print(f"✓ Model loaded successfully from: {model_path}")
+except Exception as e:
+    print(f"❌ Error loading model: {e}")
+    model = None
+
+# ===================== CLASS NAMES =====================
+class_names = ['Cataract', 'Diabetic_Retinopathy', 'Glaucoma', 'Normal']
+
+# ===================== PREPROCESSING FUNCTION (FIXED!) =====================
+def preprocess_image(image):
+    """Preprocess image for the model - USING EFFICIENTNET PREPROCESS_INPUT"""
+    # Convert to PIL Image if needed
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image.astype('uint8'))
+
+    # Resize to 224x224
+    image = image.resize((224, 224))
+
+    # Convert to array (IMPORTANT: convert to uint8 first)
+    img_array = np.array(image, dtype=np.uint8)
+
+    # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
+
+    # USE EFFICIENTNET PREPROCESS_INPUT (This is the FIX!)
+    # This matches how the model was trained
+    img_array = preprocess_input(img_array)
+
+    return img_array
+
+# ===================== PREDICTION FUNCTION =====================
+def predict_disease(image):
+    """Predict eye disease from uploaded image"""
+
+    if model is None:
+        return "❌ Error: Model not loaded. Please check the model file path."
+
+    if image is None:
+        return "⚠️ Please upload an image first!"
+
+    try:
+        # Preprocess the image
+        processed_img = preprocess_image(image)
+
+        # Make prediction
+        predictions = model.predict(processed_img, verbose=0)
+        pred_probs = predictions[0]
+
+        # Get the predicted class
+        predicted_class_idx = np.argmax(pred_probs)
+        predicted_class = class_names[predicted_class_idx]
+        confidence = pred_probs[predicted_class_idx] * 100
+
+        # Create detailed results
+        results_text = f"""
+╔════════════════════════════════════════════════════╗
+║     EYE DISEASE CLASSIFICATION RESULT               ║
+╚════════════════════════════════════════════════════╝
+
+🎯 PREDICTED DISEASE: {predicted_class.upper()}
+
+📊 CONFIDENCE: {confidence:.2f}%
+
+════════════════════════════════════════════════════
+DETAILED PREDICTIONS:
+════════════════════════════════════════════════════
+"""
+
+        # Add all predictions with confidence bars
+        for i, class_name in enumerate(class_names):
+            prob = pred_probs[i] * 100
+            bar_length = int(prob / 5)
+            bar = '█' * bar_length + '░' * (20 - bar_length)
+            results_text += f"\n{class_name:25} {bar} {prob:6.2f}%"
+
+        results_text += "\n\n════════════════════════════════════════════════════\n"
+
+        # Add interpretation
+        if confidence >= 80:
+            results_text += "✓ HIGH CONFIDENCE: The model is very confident about this prediction.\n"
+        elif confidence >= 60:
+            results_text += "⚠️  MODERATE CONFIDENCE: The prediction is reasonably confident.\n"
+        else:
+            results_text += "❌ LOW CONFIDENCE: Consider manual review or additional testing.\n"
+
+        results_text += "════════════════════════════════════════════════════\n"
+
+        return results_text
+
+    except Exception as e:
+        return f"❌ Error during prediction: {str(e)}"
+
+# ===================== CREATE GRADIO INTERFACE =====================
+with gr.Blocks(title="Eye Disease Classifier") as demo:
+
+    gr.Markdown("""
+    # 👁️ Eye Disease Classification System
+
+    **Automated Detection of Eye Diseases from Fundus Images**
+
+    Upload a fundus (retinal) image to classify eye diseases into 4 categories:
+    - **Normal**: Healthy eye with no pathology
+    - **Cataract**: Clouding of the lens
+    - **Diabetic Retinopathy (DR)**: Retinal damage from diabetes
+    - **Glaucoma**: Optic nerve damage from increased eye pressure
+
+    ---
+    """)
+
+    with gr.Row():
+        with gr.Column():
+            gr.Markdown("### 📤 Upload Fundus Image")
+            gr.Markdown("*Click to upload or drag and drop a fundus image*")
+            image_input = gr.Image(
+                label="Fundus Image",
+                type="pil",
+                image_mode="RGB"
+            )
+            predict_btn = gr.Button("🔍 Analyze Image", size="lg", variant="primary")
+
+        with gr.Column():
+            gr.Markdown("### 📊 Classification Results")
+            output_text = gr.Textbox(
+                label="Prediction Results",
+                lines=25,
+                interactive=False,
+                max_lines=30,
+                show_label=True
+            )
+
+    # Connect the predict button to the function
+    predict_btn.click(
+        fn=predict_disease,
+        inputs=image_input,
+        outputs=output_text
+    )
+
+    # Instructions section
+    gr.Markdown("---")
+    gr.Markdown("""
+    ### 📝 How to Use
+
+    1. **Upload Image**: Click the upload area and select a fundus image
+    2. **Analyze**: Click the "Analyze Image" button
+    3. **View Results**: See predictions with confidence scores
+
+    ### ⚠️ Important Notes
+
+    - **For Fundus Images Only**: This model expects retinal/fundus images (back of eye scans)
+    - **Not a Medical Diagnosis**: This is a demonstration model. Always consult with a qualified ophthalmologist for medical decisions
+    - **Confidence Score**: Higher confidence (>80%) indicates stronger prediction reliability
+    - **Multiple Classes**: The model shows probabilities for all 4 disease categories
+
+    ### 🎯 Model Details
+
+    - **Architecture**: EfficientNetB0 with Transfer Learning
+    - **Training Data**: Kaggle Eye Diseases Classification Dataset
+    - **Classes**: Normal, Cataract, Diabetic Retinopathy, Glaucoma
+    - **Expected Accuracy**: ~92% on test set
+    - **Image Size**: 224×224 pixels
+
+    ---
+    """)
+
+    gr.Markdown("""
+    **Developed for**: Graduation Project - Computer Science
+    **Model**: EfficientNetB0 Transfer Learning
+    **Last Updated**: December 2025
+    """)
+
+# ===================== LAUNCH APP =====================
+if __name__ == "__main__":
+    demo.launch(share=True)
