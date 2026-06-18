@@ -10,7 +10,7 @@ export default defineConfig({
   ],
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(
-      process.env.VITE_API_URL || 'http://site74972.siteasp.net'
+      process.env.VITE_API_URL || 'https://dc5f12f6-4792-40c4-b626-2227edf779b5-00-1sgoz0eargar.worf.replit.dev'
     )
   },
 })
