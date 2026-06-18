@@ -16,9 +16,15 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Database (SQLite)
+        // Database (SQL Server or SQLite based on connection string)
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+        {
+            if (connectionString.StartsWith("Server=") || connectionString.Contains("database.windows.net") || connectionString.Contains("databaseasp.net"))
+                options.UseSqlServer(connectionString);
+            else
+                options.UseSqlite(connectionString);
+        });
 
         // Identity
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
