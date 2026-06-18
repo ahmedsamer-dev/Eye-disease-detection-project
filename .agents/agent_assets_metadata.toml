@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "huDj7pL-LbpgKxs4eQUga"
+uri = "file://eyedisease_deploy.zip"
+type = "unspecified"
+title = "eyedisease_deploy.zip — ارفعه على الاستضافة"
