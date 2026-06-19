@@ -6,3 +6,9 @@ id = "huDj7pL-LbpgKxs4eQUga"
 uri = "file://eyedisease_deploy.zip"
 type = "unspecified"
 title = "eyedisease_deploy.zip — ارفعه على الاستضافة"
+
+[[outputs]]
+id = "3OvfaNkEszKrs_5MI3XGt"
+uri = "file://architecture.svg"
+type = "image"
+title = "System Architecture — AI Eye Disease Detection"

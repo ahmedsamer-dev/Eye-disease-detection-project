@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" font-family="Segoe UI, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="900" height="560" fill="#0f172a" rx="16"/>
+
+  <!-- Title -->
+  <text x="450" y="42" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="700" letter-spacing="1">AI Eye Disease Detection — System Architecture</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- ACTOR: Doctor -->
+  <!-- ══════════════════════════════════════════════ -->
+  <g transform="translate(60,120)">
+    <!-- Person icon -->
+    <circle cx="40" cy="28" r="18" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+    <circle cx="40" cy="22" r="9" fill="#94a3b8"/>
+    <path d="M20 55 Q40 40 60 55" fill="#94a3b8"/>
+    <text x="40" y="80" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="600">Doctor</text>
+    <text x="40" y="96" text-anchor="middle" fill="#64748b" font-size="11">Browser</text>
+  </g>
+
+  <!-- Arrow: Doctor → Frontend -->
+  <line x1="168" y1="168" x2="228" y2="168" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="198" y="158" text-anchor="middle" fill="#64748b" font-size="10">HTTPS</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- smarterasp.net hosting box -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="228" y="80" width="530" height="340" rx="14" fill="none" stroke="#1e40af" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="493" y="104" text-anchor="middle" fill="#3b82f6" font-size="12" font-weight="600">smarterasp.net  (IIS Hosting)</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Frontend Box -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="248" y="120" width="200" height="200" rx="12" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
+  <!-- Top accent -->
+  <rect x="248" y="120" width="200" height="36" rx="12" fill="#0369a1"/>
+  <rect x="248" y="144" width="200" height="12" fill="#0369a1"/>
+  <text x="348" y="144" text-anchor="middle" fill="#e0f2fe" font-size="13" font-weight="700">Frontend</text>
+  <text x="348" y="161" text-anchor="middle" fill="#7dd3fc" font-size="11">React + Vite + MUI</text>
+
+  <!-- Frontend items -->
+  <text x="268" y="188" fill="#94a3b8" font-size="11">📄  Landing / Login / Register</text>
+  <text x="268" y="208" fill="#94a3b8" font-size="11">🏠  Home — Upload Image</text>
+  <text x="268" y="228" fill="#94a3b8" font-size="11">📊  Reports — View Result</text>
+  <text x="268" y="248" fill="#94a3b8" font-size="11">📁  History — Saved Reports</text>
+  <text x="268" y="268" fill="#94a3b8" font-size="11">👤  Profile / Personal Info</text>
+  <text x="268" y="295" fill="#475569" font-size="10">dist/ served as static files</text>
+  <text x="268" y="310" fill="#475569" font-size="10">by ASP.NET Core (wwwroot)</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Arrow: Frontend ↔ Backend (REST + JWT) -->
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Right arrow -->
+  <line x1="450" y1="196" x2="498" y2="196" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrc)"/>
+  <!-- Left arrow -->
+  <line x1="498" y1="212" x2="450" y2="212" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <text x="474" y="187" text-anchor="middle" fill="#22d3ee" font-size="9.5" font-weight="600">REST / HTTPS</text>
+  <text x="474" y="226" text-anchor="middle" fill="#a78bfa" font-size="9.5" font-weight="600">JWT Response</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Backend Box -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="500" y="120" width="240" height="200" rx="12" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
+  <rect x="500" y="120" width="240" height="36" rx="12" fill="#5b21b6"/>
+  <rect x="500" y="144" width="240" height="12" fill="#5b21b6"/>
+  <text x="620" y="144" text-anchor="middle" fill="#ede9fe" font-size="13" font-weight="700">Backend API</text>
+  <text x="620" y="161" text-anchor="middle" fill="#c4b5fd" font-size="11">ASP.NET Core 7  (.NET)</text>
+
+  <!-- Backend items -->
+  <text x="516" y="188" fill="#94a3b8" font-size="11">🔐  Auth  (JWT + Google OAuth)</text>
+  <text x="516" y="208" fill="#94a3b8" font-size="11">📸  Scans  — save &amp; forward</text>
+  <text x="516" y="228" fill="#94a3b8" font-size="11">📋  Reports  — CRUD + PDF</text>
+  <text x="516" y="248" fill="#94a3b8" font-size="11">👤  Profile / Medical History</text>
+  <text x="516" y="272" fill="#475569" font-size="10">SQL Server  db56530.databaseasp.net</text>
+  <text x="516" y="286" fill="#475569" font-size="10">EF Core  |  Clean Architecture</text>
+  <text x="516" y="305" fill="#475569" font-size="10">Port 8000  (IIS outofprocess)</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Arrow: Backend → AI Server -->
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Down arrow from backend -->
+  <line x1="620" y1="324" x2="620" y2="362" stroke="#f97316" stroke-width="2" marker-end="url(#arro)"/>
+  <!-- Up arrow to backend -->
+  <line x1="636" y1="362" x2="636" y2="324" stroke="#34d399" stroke-width="2" marker-end="url(#arrg)"/>
+
+  <text x="680" y="345" fill="#f97316" font-size="9.5" font-weight="600">POST /predict  (image)</text>
+  <text x="680" y="360" fill="#34d399" font-size="9.5" font-weight="600">JSON  { condition, confidence }</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- AI Model Server Box -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="500" y="366" width="240" height="44" rx="10" fill="#1e293b" stroke="#f97316" stroke-width="1.5"/>
+  <text x="620" y="384" text-anchor="middle" fill="#fed7aa" font-size="12" font-weight="700">🤖  AI Model Server</text>
+  <text x="620" y="400" text-anchor="middle" fill="#94a3b8" font-size="10.5">Python Flask  ·  Port 5000  ·  External Server</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- DB Box (below frontend) -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="248" y="366" width="200" height="44" rx="10" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="348" y="384" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">🗄️  SQL Server</text>
+  <text x="348" y="400" text-anchor="middle" fill="#64748b" font-size="10.5">Users · Reports · Scans · History</text>
+
+  <!-- Arrow Backend → DB -->
+  <line x1="500" y1="280" x2="450" y2="280" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrs)"/>
+  <line x1="348" y1="325" x2="348" y2="362" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrs)"/>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- LEGEND -->
+  <!-- ══════════════════════════════════════════════ -->
+  <rect x="60" y="430" width="780" height="100" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="80" y="452" fill="#94a3b8" font-size="12" font-weight="700">Flow Summary:</text>
+  <text x="80" y="474" fill="#64748b" font-size="11">1. Doctor opens browser  →  React SPA loads (served by .NET static files)</text>
+  <text x="80" y="494" fill="#64748b" font-size="11">2. Doctor uploads fundus image  →  Frontend sends multipart POST to .NET API</text>
+  <text x="80" y="514" fill="#64748b" font-size="11">3. .NET API saves image, calls AI Server (Flask/port 5000)  →  gets diagnosis  →  saves to SQL Server  →  returns report to Frontend</text>
+
+  <!-- ══════════════════════════════════════════════ -->
+  <!-- Arrow markers -->
+  <!-- ══════════════════════════════════════════════ -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+    </marker>
+    <marker id="arrc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrp" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arro" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f97316"/>
+    </marker>
+    <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrs" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+</svg>
