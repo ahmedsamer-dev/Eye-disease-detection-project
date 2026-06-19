@@ -205,7 +205,11 @@ export default function Landing() {
             <Button
               variant="contained"
               size="small"
-              onClick={() => window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=784794762508-c185dkeb094cjr49em6j2rdmu2k5k57v.apps.googleusercontent.com&redirect_uri=http://localhost:5173/callback&response_type=id_token&scope=openid%20email%20profile&nonce=eye_disease_nonce'}
+              onClick={() => {
+                const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+                const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+                window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20email%20profile&nonce=eye_disease_nonce`;
+              }}
               startIcon={<GoogleIcon />}
               sx={{
                 bgcolor: '#ffffff',
