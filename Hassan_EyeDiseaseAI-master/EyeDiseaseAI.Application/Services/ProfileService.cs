@@ -23,7 +23,9 @@ public class ProfileService : IProfileService
         var user = await _userManager.FindByIdAsync(userId)
             ?? throw new KeyNotFoundException("User not found.");
 
-        return _mapper.Map<ProfileDto>(user);
+        var dto = _mapper.Map<ProfileDto>(user);
+        dto.IsGoogleUser = user.PasswordHash == null;
+        return dto;
     }
 
     public async Task<ProfileDto> UpdateProfileAsync(string userId, UpdateProfileDto dto)

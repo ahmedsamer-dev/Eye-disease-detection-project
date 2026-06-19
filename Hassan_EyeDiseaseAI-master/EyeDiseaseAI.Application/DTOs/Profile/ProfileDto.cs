@@ -14,4 +14,5 @@ public class ProfileDto
     public string? Address { get; set; }
     public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool IsGoogleUser { get; set; }
 }

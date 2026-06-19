@@ -496,8 +496,8 @@ export default function Profile() {
             Account Settings
           </Typography>
 
-          {/* ROW 1: Change Password */}
-          <Box sx={{ py: 2 }}>
+          {/* ROW 1: Change Password — hidden for Google users */}
+          {!profile.isGoogleUser && <Box sx={{ py: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: theme.palette.text.primary }}>Change Password</Typography>
@@ -633,7 +633,7 @@ export default function Profile() {
                 </Button>
               </Box>
             </Collapse>
-          </Box>
+          </Box>}
 
           <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
 
