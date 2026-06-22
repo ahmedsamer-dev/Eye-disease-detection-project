@@ -15,7 +15,8 @@ import Navbar from './components/Navbar.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   return user ? <WithNav>{children}</WithNav> : <Navigate to="/login" />;
 }
 
