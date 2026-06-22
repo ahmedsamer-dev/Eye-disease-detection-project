@@ -37,12 +37,52 @@ export default function Home() {
 
   function handleFile(f) {
     if (!f) return;
-    setFile(f);
-    if (f.type.startsWith('image/')) {
-      setPreview(URL.createObjectURL(f));
-    } else {
-      setPreview(null);
+    setError('');
+
+    // 1. File type check
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowed.includes(f.type.toLowerCase())) {
+      setError('Only JPEG and PNG images are accepted.');
+      return;
     }
+
+    // 2. File size check — fundus images are at least 10 KB
+    if (f.size < 10 * 1024) {
+      setError('File is too small. Please upload a real fundus photograph (minimum 10 KB).');
+      return;
+    }
+
+    // 3. File size upper limit — 10 MB
+    if (f.size > 10 * 1024 * 1024) {
+      setError('File is too large. Maximum allowed size is 10 MB.');
+      return;
+    }
+
+    // 4. Dimension check — load image and verify it is at least 100×100 px
+    //    and has a roughly square aspect ratio (0.33 – 3.0) typical of fundus cameras
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      URL.revokeObjectURL(url);
+      if (w < 100 || h < 100) {
+        setError(`Image is too small (${w}×${h} px). Fundus images should be at least 100×100 px.`);
+        return;
+      }
+      const ratio = w / h;
+      if (ratio < 0.33 || ratio > 3.0) {
+        setError(`Unusual image dimensions (${w}×${h} px). Please upload a standard fundus photograph.`);
+        return;
+      }
+      // All checks passed — accept the file
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError('Could not read the image file. Please try a different file.');
+    };
+    img.src = url;
   }
 
   function removeFile() {
