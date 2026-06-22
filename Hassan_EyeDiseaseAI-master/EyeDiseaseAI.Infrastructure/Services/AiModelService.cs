@@ -52,23 +52,51 @@ public class AiModelService : IAiModelService
             else if (root.TryGetProperty("condition", out var condProp))
                 condition = condProp.GetString() ?? "Unknown";
 
+            // confidence may arrive as a number (0.94 or 94.2) OR a string ("28.9%")
             if (root.TryGetProperty("confidence", out var confProp))
             {
-                confidence = confProp.GetDouble();
-                if (confidence <= 1.0)
-                    confidence *= 100.0;
+                if (confProp.ValueKind == JsonValueKind.Number)
+                {
+                    confidence = confProp.GetDouble();
+                    if (confidence <= 1.0) confidence *= 100.0;
+                }
+                else if (confProp.ValueKind == JsonValueKind.String)
+                {
+                    var raw = confProp.GetString()?.Replace("%", "").Trim() ?? "0";
+                    double.TryParse(raw, System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out confidence);
+                    if (confidence <= 1.0) confidence *= 100.0;
+                }
             }
 
+            // Use values from AI server if provided, otherwise generate via BuildDetails
             var details = BuildDetails(condition);
+
+            string severity = details.Severity;
+            string iop     = details.IopEstimate;
+            string cdr     = details.RetinalCupDiscRatio;
+            string summary = details.Summary;
+
+            if (root.TryGetProperty("severity", out var sevProp) && !string.IsNullOrWhiteSpace(sevProp.GetString()))
+                severity = sevProp.GetString()!;
+
+            if (root.TryGetProperty("iop_estimate", out var iopProp) && !string.IsNullOrWhiteSpace(iopProp.GetString()))
+                iop = iopProp.GetString()!;
+
+            if (root.TryGetProperty("cup_disc_ratio", out var cdrProp) && !string.IsNullOrWhiteSpace(cdrProp.GetString()))
+                cdr = cdrProp.GetString()!;
+
+            if (root.TryGetProperty("summary", out var sumProp) && !string.IsNullOrWhiteSpace(sumProp.GetString()))
+                summary = sumProp.GetString()!;
 
             return new AiPredictionResult
             {
                 Condition = condition,
                 Confidence = Math.Round(confidence, 1),
-                Severity = details.Severity,
-                IopEstimate = details.IopEstimate,
-                RetinalCupDiscRatio = details.RetinalCupDiscRatio,
-                Summary = details.Summary,
+                Severity = severity,
+                IopEstimate = iop,
+                RetinalCupDiscRatio = cdr,
+                Summary = summary,
                 Recommendations = details.Recommendations
             };
         }
