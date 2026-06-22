@@ -35,16 +35,30 @@ public class ScanService : IScanService
         using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var prediction = await _aiModelService.PredictAsync(imageStream, file.FileName);
 
-        // Validate: confidence < 50% means the model cannot recognise a known eye condition
-        // (random image scores ~25% per class). Clean up and reject.
-        if (prediction.Confidence < 50.0)
+        // ── Fundus Image Validation ──────────────────────────────────────────
+        // Strategy 1: top confidence must be ≥ 60%
+        bool lowConfidence = prediction.Confidence < 60.0;
+
+        // Strategy 2 (only when all_predictions is available):
+        // margin = (max_prob − second_max_prob) × 100
+        // If margin < 20 pp the model is confused — image is not a recognisable fundus photo.
+        bool lowMargin = false;
+        if (prediction.AllPredictions.Count >= 2)
+        {
+            var sorted = prediction.AllPredictions.OrderByDescending(p => p).ToList();
+            double marginPct = (sorted[0] - sorted[1]) * 100.0;
+            lowMargin = marginPct < 20.0;
+        }
+
+        if (lowConfidence || lowMargin)
         {
             try { File.Delete(filePath); } catch { /* best-effort cleanup */ }
             throw new ArgumentException(
                 "The uploaded image does not appear to be a valid fundus/retinal eye photograph. " +
-                "Please upload a clear fundus image (e.g., from a fundus camera or OCT scan). " +
-                $"Detected: \"{prediction.Condition}\" with only {prediction.Confidence:F1}% confidence.");
+                "Please upload a clear fundus image captured by a fundus camera or OCT device. " +
+                $"Model result: \"{prediction.Condition}\" — {prediction.Confidence:F1}% confidence.");
         }
+        // ────────────────────────────────────────────────────────────────────
 
         // 3. Save ScanImage entity
         var scanImage = new ScanImage

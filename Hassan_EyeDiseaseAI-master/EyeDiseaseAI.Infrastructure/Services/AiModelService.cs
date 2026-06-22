@@ -89,6 +89,19 @@ public class AiModelService : IAiModelService
             if (root.TryGetProperty("summary", out var sumProp) && !string.IsNullOrWhiteSpace(sumProp.GetString()))
                 summary = sumProp.GetString()!;
 
+            // Parse all_predictions if available  [[p0, p1, p2, p3]]
+            var allPreds = new List<double>();
+            if (root.TryGetProperty("all_predictions", out var allProp) &&
+                allProp.ValueKind == JsonValueKind.Array)
+            {
+                // shape can be [[...]] or [...]
+                var first = allProp[0];
+                var src = first.ValueKind == JsonValueKind.Array ? first : allProp;
+                foreach (var el in src.EnumerateArray())
+                    if (el.ValueKind == JsonValueKind.Number)
+                        allPreds.Add(el.GetDouble());
+            }
+
             return new AiPredictionResult
             {
                 Condition = condition,
@@ -97,7 +110,8 @@ public class AiModelService : IAiModelService
                 IopEstimate = iop,
                 RetinalCupDiscRatio = cdr,
                 Summary = summary,
-                Recommendations = details.Recommendations
+                Recommendations = details.Recommendations,
+                AllPredictions = allPreds
             };
         }
         catch (Exception ex)
