@@ -41,6 +41,11 @@ public class ScansController : ControllerBase
             var result = await _scanService.UploadAndAnalyzeAsync(userId, file, eyeSide);
             return Ok(result);
         }
+        catch (ArgumentException ex)
+        {
+            // Validation errors (e.g. non-fundus image) → 400
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error analyzing image", detail = ex.Message });

@@ -35,6 +35,17 @@ public class ScanService : IScanService
         using var imageStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var prediction = await _aiModelService.PredictAsync(imageStream, file.FileName);
 
+        // Validate: confidence < 50% means the model cannot recognise a known eye condition
+        // (random image scores ~25% per class). Clean up and reject.
+        if (prediction.Confidence < 50.0)
+        {
+            try { File.Delete(filePath); } catch { /* best-effort cleanup */ }
+            throw new ArgumentException(
+                "The uploaded image does not appear to be a valid fundus/retinal eye photograph. " +
+                "Please upload a clear fundus image (e.g., from a fundus camera or OCT scan). " +
+                $"Detected: \"{prediction.Condition}\" with only {prediction.Confidence:F1}% confidence.");
+        }
+
         // 3. Save ScanImage entity
         var scanImage = new ScanImage
         {

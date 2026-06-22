@@ -10,6 +10,7 @@ import { scanService, getErrorMessage } from '../api';
 export default function Home() {
   const navigate = useNavigate();
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -83,9 +84,26 @@ export default function Home() {
         >
           AI Image Analysis
         </Typography>
-        <Typography sx={{ color: theme.palette.text.secondary, textAlign: 'center', mb: 5, fontSize: '0.9rem' }}>
+        <Typography sx={{ color: theme.palette.text.secondary, textAlign: 'center', mb: 1.5, fontSize: '0.9rem' }}>
           Upload a fundus eye image for AI analysis.
         </Typography>
+        <Box sx={{
+          display: 'flex', alignItems: 'flex-start', gap: 1,
+          bgcolor: isDark ? 'rgba(234,179,8,0.08)' : '#fefce8',
+          border: `1px solid ${isDark ? 'rgba(234,179,8,0.25)' : '#fde68a'}`,
+          borderRadius: '10px', px: 2, py: 1.2, mb: 3, maxWidth: 520,
+        }}>
+          <Typography sx={{ fontSize: '0.95rem', lineHeight: 1 }}>⚠️</Typography>
+          <Box>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: isDark ? '#fbbf24' : '#92400e', mb: 0.3 }}>
+              Fundus Images Only
+            </Typography>
+            <Typography sx={{ fontSize: '0.78rem', color: isDark ? '#d97706' : '#78350f', lineHeight: 1.5 }}>
+              The AI model detects <strong>4 conditions</strong>: Glaucoma, Diabetic Retinopathy, Cataract, and Normal.
+              Only upload clear <strong>fundus / retinal photographs</strong>. Other images will be rejected.
+            </Typography>
+          </Box>
+        </Box>
 
         {error && <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error}</Alert>}
 
