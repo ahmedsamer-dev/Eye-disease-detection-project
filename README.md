@@ -141,7 +141,7 @@ The application was deployed using a distributed architecture:
 <img width="1867" height="1333" alt="Screenshot_14-7-2026_151234_aieyedetection runasp net" src="https://github.com/user-attachments/assets/437aad98-436d-4861-baf8-746acfe77644" />
 
 ```md
-![Result Page](docs/images/result.png)
+
 ```
 
 ---
