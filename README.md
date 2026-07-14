@@ -35,7 +35,7 @@ The system currently supports the detection of four common eye diseases:
 - Cataract
 - Normal
 
-> Replace the diseases above with the actual disease names.
+> >>>>
 
 ---
 
